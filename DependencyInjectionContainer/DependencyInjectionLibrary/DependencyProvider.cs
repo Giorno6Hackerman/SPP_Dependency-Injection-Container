@@ -9,6 +9,9 @@ namespace DependencyInjectionLibrary
             
         }
 
-        
+        public U Resolve<T, U>() where U : T
+        {
+            return default(U);
+        }
     }
 }
