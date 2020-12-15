@@ -1,21 +1,57 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace DependencyInjectionLibrary
 {
     public class DependencyProvider
     {
-        private DependenciesConfiguration _dependencies;
+        private DependenciesConfiguration _depConfigs;
 
-        public DependencyProvider(DependenciesConfiguration dependencies)
+        public DependencyProvider(DependenciesConfiguration depConfigs)
         {
-            _dependencies = dependencies;         
+            _depConfigs = depConfigs;         
         }
 
-        public U Resolve<T, U>()
+        public T Resolve<T>()
             where T : class
-            where U : T
         {
-            return default(U);
+            if (!ValidateConfiguration(typeof(T)))
+            { 
+                // bad configuration
+            }
+
+            List<Type> implementations;
+
+            _depConfigs.Dependecies.TryGetValue(typeof(T), out implementations);
+            
+
+            return default(T);
+        }
+
+        private bool ValidateConfiguration(Type type)
+        {
+            List<Type> implementations;
+
+            if (_depConfigs.Dependecies.Count < 1)
+            {
+                // configuration is empty
+                return false;
+            }
+
+            if (!_depConfigs.Dependecies.TryGetValue(type, out implementations))
+            {
+                // dependency not found
+                return false;
+            }
+
+            if (implementations.Count > 1 && !type.GetInterfaces().Contains(typeof(IEnumerable)))
+            {
+                // must be enumerable
+                return false;
+            }
+            return true;
         }
     }
 }
