@@ -14,7 +14,7 @@ namespace DependencyInjectionLibrary
             _depConfigs = depConfigs;         
         }
 
-        public T Resolve<T>()
+        public object Resolve<T>()
             where T : class
         {
             if (!ValidateConfiguration(typeof(T)))
@@ -27,7 +27,7 @@ namespace DependencyInjectionLibrary
             _depConfigs.Dependecies.TryGetValue(typeof(T), out implementations);
             
 
-            return default(T);
+            return null;
         }
 
         private bool ValidateConfiguration(Type type)
@@ -40,16 +40,19 @@ namespace DependencyInjectionLibrary
                 return false;
             }
 
-            if (!_depConfigs.Dependecies.TryGetValue(type, out implementations))
+            foreach (var dependency in _depConfigs.Dependecies)
             {
-                // dependency not found
-                return false;
-            }
+                if (!_depConfigs.Dependecies.TryGetValue(dependency.Key, out implementations))
+                {
+                    // dependency not found
+                    return false;
+                }
 
-            if (implementations.Count > 1 && !type.GetInterfaces().Contains(typeof(IEnumerable)))
-            {
-                // must be enumerable
-                return false;
+                if (implementations.Count > 1 && !dependency.Key.GetInterfaces().Contains(typeof(IEnumerable)))
+                {
+                    // must be enumerable
+                    return false;
+                }
             }
             return true;
         }
