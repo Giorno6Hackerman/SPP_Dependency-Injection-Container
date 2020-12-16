@@ -25,17 +25,49 @@ namespace DependencyInjectionLibrary
             }
 
             List<ImplementationInfo> implementations;
+            if (typeof(T).GetInterfaces().Contains(typeof(IEnumerable)))
+            { 
+                Type genericType = typeof(T).GetGenericArguments()[0];
+                List<object> createdImpls = new List<object>();
+                _depConfigs.Dependecies.TryGetValue(typeof(T), out implementations);
+                foreach (var impl in implementations)
+                {
+                    createdImpls.Add(CreateDependency(typeof(T), impl));
+                }
+                return createdImpls.AsEnumerable();
+            }
+
+            if (typeof(T).IsGenericType)
+            {
+                Type genericBase = typeof(T).GetGenericTypeDefinition();
+                Type genericArgument = typeof(T).GetGenericArguments()[0];
+
+                if (!ValidateConfiguration(genericBase) || !ValidateConfiguration(genericArgument))
+                {
+                    // bad configuration
+                    return null;
+                }
+                _depConfigs.Dependecies.TryGetValue(genericBase, out implementations);
+                if (implementations.Count > 1)
+                {
+                    // must be 1
+                }
+                ImplementationInfo impl = new ImplementationInfo(implementations[0].ImplementationType.MakeGenericType(genericArgument),
+                                                                 implementations[0].Lifetime);
+                return (CreateDependency(genericArgument, impl) as T);
+            }
 
             _depConfigs.Dependecies.TryGetValue(typeof(T), out implementations);
-            
-
-            return null;
+            if (implementations.Count > 1)
+            { 
+                // must be 1
+            }
+            return (CreateDependency(typeof(T), implementations[0]) as T);
         }
 
-        private T CreateDependency<T>(List<Type> implementations)
+        private IEnumerable<object> CreateDependency(Type type, List<ImplementationInfo> implementations)
         {
-            Type depType = typeof(T);
-            ConstructorInfo[] constructors = depType.GetConstructors();
+            ConstructorInfo[] constructors = type.GetConstructors();
             if (constructors.Length < 1)
             { 
                 // no public constructors
@@ -48,7 +80,25 @@ namespace DependencyInjectionLibrary
             }
 
             
-            return default(T);
+            return null;
+        }
+
+        private object CreateDependency(Type type, ImplementationInfo implementation)
+        {
+            ConstructorInfo[] constructors = type.GetConstructors();
+            if (constructors.Length < 1)
+            {
+                // no public constructors
+            }
+            ConstructorInfo constructor = ChooseConstructor(constructors);
+            ParameterInfo[] parameters = constructor.GetParameters();
+            if (parameters.All(p => _depConfigs.Dependecies.ContainsKey(p.ParameterType)))
+            {
+
+            }
+
+
+            return null;
         }
 
         private ConstructorInfo ChooseConstructor(ConstructorInfo[] constructors)
@@ -80,6 +130,12 @@ namespace DependencyInjectionLibrary
                     return false;
                 }
             }
+
+            if (!_depConfigs.Dependecies.ContainsKey(type))
+            {
+                return false;
+            }    
+
             return true;
         }
     }
