@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace DependencyInjectionLibrary
 {
@@ -18,11 +19,12 @@ namespace DependencyInjectionLibrary
             where T : class
         {
             if (!ValidateConfiguration(typeof(T)))
-            { 
+            {
                 // bad configuration
+                return null;
             }
 
-            List<Type> implementations;
+            List<ImplementationInfo> implementations;
 
             _depConfigs.Dependecies.TryGetValue(typeof(T), out implementations);
             
@@ -30,9 +32,33 @@ namespace DependencyInjectionLibrary
             return null;
         }
 
+        private T CreateDependency<T>(List<Type> implementations)
+        {
+            Type depType = typeof(T);
+            ConstructorInfo[] constructors = depType.GetConstructors();
+            if (constructors.Length < 1)
+            { 
+                // no public constructors
+            }
+            ConstructorInfo constructor = ChooseConstructor(constructors);
+            ParameterInfo[] parameters = constructor.GetParameters();
+            if (parameters.All(p => _depConfigs.Dependecies.ContainsKey(p.ParameterType)))
+            { 
+                
+            }
+
+            
+            return default(T);
+        }
+
+        private ConstructorInfo ChooseConstructor(ConstructorInfo[] constructors)
+        {
+            return constructors.OrderByDescending(c => c.GetParameters().Length).First();
+        }
+
         private bool ValidateConfiguration(Type type)
         {
-            List<Type> implementations;
+            List<ImplementationInfo> implementations;
 
             if (_depConfigs.Dependecies.Count < 1)
             {
