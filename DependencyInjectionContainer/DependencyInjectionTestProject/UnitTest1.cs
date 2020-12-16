@@ -76,5 +76,18 @@ namespace DependencyInjectionTestProject
 
             Assert.IsNotNull(first);
         }
+
+        [Test]
+        public void CheckSingletonCreationTest()
+        {
+            DependenciesConfiguration config = new DependenciesConfiguration();
+            config.Register<IService, Service1>(DependencyLifetime.Singleton);
+            DependencyProvider provider = new DependencyProvider(config);
+
+            var first = provider.Resolve<IService>();
+            var second = provider.Resolve<IService>();
+
+            Assert.AreSame(first, second);
+        }
     }
 }
