@@ -9,7 +9,6 @@ namespace DependencyInjectionLibrary
         public DependencyLifetime Lifetime { get; private set; }
         public Type ImplementationType { get; private set; }
         private object _implementation;
-        private static readonly object _lock = new object();
 
         public ImplementationInfo(Type type, DependencyLifetime lifetime)
         {
