@@ -28,14 +28,14 @@ namespace DependencyInjectionLibrary
             }
 
             List<ImplementationInfo> implementations;
-            if (typeof(T).GetInterfaces().Contains(typeof(IEnumerable)))
+            if (typeof(IEnumerable).IsAssignableFrom(typeof(T)))
             { 
                 Type genericType = typeof(T).GetGenericArguments()[0];
                 List<object> createdImpls = new List<object>();
-                _depConfigs.Dependecies.TryGetValue(typeof(T), out implementations);
+                _depConfigs.Dependecies.TryGetValue(genericType, out implementations);
                 foreach (var impl in implementations)
                 {
-                    createdImpls.Add(CreateDependency(impl) as T);
+                    createdImpls.Add(CreateDependency(impl));
                 }
                 return createdImpls.AsEnumerable();
             }
@@ -45,11 +45,6 @@ namespace DependencyInjectionLibrary
                 Type genericBase = typeof(T).GetGenericTypeDefinition();
                 Type genericArgument = typeof(T).GetGenericArguments()[0];
 
-                if (!ValidateConfiguration(genericBase) || !ValidateConfiguration(genericArgument))
-                {
-                    // bad configuration
-                    return null;
-                }
                 _depConfigs.Dependecies.TryGetValue(genericBase, out implementations);
                 if (implementations.Count > 1)
                 {
@@ -90,7 +85,7 @@ namespace DependencyInjectionLibrary
                     foreach (var parameter in parameters)
                     {
                         _depConfigs.Dependecies.TryGetValue(parameter.ParameterType, out implementations);
-                        if (parameter.ParameterType.GetInterfaces().Contains(typeof(IEnumerable)))
+                        if (typeof(IEnumerable).IsAssignableFrom(parameter.ParameterType))
                         {
                             Type genericType = parameter.ParameterType.GetGenericArguments()[0];
                             List<object> createdImpls = new List<object>();
@@ -172,19 +167,39 @@ namespace DependencyInjectionLibrary
                     return false;
                 }
 
-                if (implementations.Count > 1 && !dependency.Key.GetInterfaces().Contains(typeof(IEnumerable)))
+                if (implementations.Count > 1 && !typeof(IEnumerable).IsAssignableFrom(type))
                 {
                     // must be enumerable
                     return false;
                 }
             }
 
-            if (!_depConfigs.Dependecies.ContainsKey(type))
+            if (typeof(IEnumerable).IsAssignableFrom(type))
             {
-                return false;
-            }    
+                Type genericType = type.GetGenericArguments()[0];
+                if (!_depConfigs.Dependecies.ContainsKey(genericType))
+                {
+                    return false;
+                }
+            }
+            else
+                if (type.IsGenericType)
+                {
+                    Type genericBase = type.GetGenericTypeDefinition();
+                    if (!_depConfigs.Dependecies.ContainsKey(genericBase))
+                    {
+                        return false;
+                    }
+                }
+                else
+                    if (!_depConfigs.Dependecies.ContainsKey(type))
+                    {
+                        return false;
+                    }    
 
             return true;
         }
+
+       
     }
 }
